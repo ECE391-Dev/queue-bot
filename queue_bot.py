@@ -359,12 +359,14 @@ async def lev_quote_command(ctx):
     Usage: !levquote
     """
     quotes = [
-        "Believe you can and you're halfway there.",
-        "The only way to do great work is to love what you do.",
-        "Success is not the key to happiness. Happiness is the key to success."
+        "You pay me with your tuition and I still drive a shitty car",
+        "Some of you are playing games in my class, not very well I might add",
+        "I don't know how anyone taught this before Severance",
+        "Is it normal to be confused? For you, yes",
     ]
     
     await ctx.send(random.choice(quotes))
+
 
 @bot.event
 async def on_command_error(ctx, error):
