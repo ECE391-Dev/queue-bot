@@ -6,6 +6,7 @@ import os
 import csv
 import asyncio
 from dotenv import load_dotenv
+import re
 
 # Load environment variables from .env file
 load_dotenv()
@@ -224,6 +225,16 @@ async def check_queue_for_groups():
     # Update the previous groups in queue for the next check
     previous_groups_in_queue = groups_in_queue
 
+async def check_message_format(netids, topics):
+    regex = "^\[(MP|Conceptual)\] ,Group \d+, Computer \d+ : .+$"
+    message = "**QUESTION WITH INCORRECT FORMAT:**\n\n"
+    for i in range(len(topics)):
+        if not re.match(regex, topics[i]):
+            message += f"Question {i} with netid {netids[i]} has wrong format: {topics[i]}"
+    
+    return message
+
+
 @bot.command(name='checkqueue')
 async def check_queue_command(ctx, queue_id=None):
     """
@@ -245,12 +256,15 @@ async def check_queue_command(ctx, queue_id=None):
         await ctx.send(f"No questions found for queue {queue_id} or error fetching questions.")
         return
     
-    # Extract NetIDs from questions
+    # Extract NetIDs and text from questions
     netids = []
+    topics = []
     for question in questions:
         netid = extract_netid(question)
         if netid:
             netids.append(netid)
+            if question["topic"]: # Put this under here to avoid length mismatch
+                topics.append(question["topic"])
     
     await ctx.send(f"Found {len(netids)} questions with NetIDs in the queue.")
     
@@ -259,7 +273,15 @@ async def check_queue_command(ctx, queue_id=None):
     
     # Format and send the message
     message = format_groups_message(groups_in_queue, group_to_members)
+
     await ctx.send(message)
+
+    # Check for questions with wrong format
+
+    await ctx.send("Checking for questions with wrong format...")
+    message = check_message_format(netids, topics)
+    await ctx.send(message)
+
 
 @bot.command(name='reloadgroups')
 async def reload_groups_command(ctx, csv_path=None):
