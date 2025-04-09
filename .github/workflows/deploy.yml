@@ -23,7 +23,7 @@ jobs:
           SSH_KEY_PATH: ${{ github.workspace }}/../private.key
       - name: Redeploy bot
         run: |
-          cat deploy.sh | ssh -i $SSH_KEY_PATH "$SERVER_USER@$SERVER_IP"
+          cat deploy.sh | ssh -i $SSH_KEY_PATH "$SERVER_USER@$SERVER_IP" -p 6677
         shell: bash
         env:
           SSH_KEY_PATH: ${{ github.workspace }}/../private.key
