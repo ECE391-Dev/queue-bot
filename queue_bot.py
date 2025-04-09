@@ -7,6 +7,7 @@ import csv
 import asyncio
 from dotenv import load_dotenv
 import re
+import random
 
 # Load environment variables from .env file
 load_dotenv()
@@ -48,6 +49,23 @@ async def get_questions_for_queue(base_url, queue_id, token=None):
             return []
     except Exception as e:
         print(f"Exception in get_questions_for_queue: {str(e)}")
+        return []
+
+async def get_queue_info(base_url, queue_id, token=None):
+    headers = {}
+    if token:
+        headers["Private-Token"] = token
+    
+    url = f"{base_url}{API_PATH}/queues/{queue_id}"
+    try:
+        response = await asyncio.to_thread(requests.get, url, headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Error fetching queue info for queue {queue_id}: {response.status_code}")
+            return []
+    except Exception as e:
+        print(f"Exception in get_queue_info: {str(e)}")
         return []
 
 def extract_netid(question):
@@ -247,6 +265,23 @@ async def check_queue_command(ctx, queue_id=None):
             await ctx.send("No queue ID specified. Please provide a queue ID or set the DEFAULT_QUEUE_ID environment variable.")
             return
     
+    queue_info = await get_queue_info(DEFAULT_BASE_URL, queue_id, QUEUE_TOKEN)
+    if not queue_info:
+        await ctx.send(f"Error fetching queue info for queue {queue_id}.")
+        return
+    
+    staff_str = ""
+    #Extract activeStaff from queue_info
+    if queue_info["activeStaff"] == []:
+        staff_str = f"No active staff found for queue {queue_id}."
+    else :
+        for staff in queue_info["activeStaff"]:
+            staff_name = staff["user"]["name"]
+            staff_str += f"{staff_name}, "
+        staff_str = staff_str[:-2]  # Remove the trailing comma and space
+
+    await ctx.send(f"Queue {queue_id} found. Currently f{staff_str} are on duty.")
+
     await ctx.send(f"Checking queue {queue_id} for group members...")
     
     # Get questions for the specified queue
@@ -316,6 +351,20 @@ async def set_interval_command(ctx, seconds: int):
     
     CHECK_INTERVAL = seconds
     await ctx.send(f"Check interval set to {seconds} seconds.")
+
+@bot.command(name='levquote')
+async def lev_quote_command(ctx):
+    """
+    Command to send a quote from the big lev
+    Usage: !levquote
+    """
+    quotes = [
+        "Believe you can and you're halfway there.",
+        "The only way to do great work is to love what you do.",
+        "Success is not the key to happiness. Happiness is the key to success."
+    ]
+    
+    await ctx.send(random.choice(quotes))
 
 @bot.event
 async def on_command_error(ctx, error):
