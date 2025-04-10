@@ -12,6 +12,7 @@ import random
 # Load environment variables from .env file
 load_dotenv()
 
+
 # Constants
 DEFAULT_BASE_URL = "https://queue.illinois.edu"
 API_PATH = "/q/api"
