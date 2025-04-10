@@ -364,7 +364,10 @@ async def check_staff_command(ctx, queue_id=None):
             staff_name = staff["user"]["name"]
             staff_str += f"{staff_name}, "
         staff_str = staff_str[:-2]  # Remove the trailing comma and space
-        staff_str = f"Currently {staff_str} are on duty."
+        if len(queue_info["activeStaff"]) > 1:
+            staff_str = f"{staff_str} are on duty."
+        else:
+            staff_str = f"{staff_str} is on duty."
 
     
 
