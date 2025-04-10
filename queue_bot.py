@@ -436,6 +436,8 @@ async def check_staff_command(ctx, queue_id=None):
 
         if (not td) and (day_of_week == 1 or day_of_week == 3):
             await ctx.send("Currently it is lecture time.")
+            await ctx.send("But there are still active staff members.")
+            await ctx.send(staff_str)
             return
         
         if not td:
@@ -445,13 +447,18 @@ async def check_staff_command(ctx, queue_id=None):
         output_str = td.get_text().replace("\n", "")
         if output_str.strip() == "":
             await ctx.send("No staff is scheduled for duty.")
+            await ctx.send("But there are still active staff members.")
+            await ctx.send(staff_str)
             return
         
         if day_of_week == 2 and (hour >= 9 and hour <= 15):
             await ctx.send(f"Currently it is {output_str}'s discussion section.")
+            await ctx.send("But there are still active staff members.")
+            await ctx.send(staff_str)
             return
         
         await ctx.send(f"Currently it is {output_str}'s office hour.")
+        await ctx.send(staff_str)
 
 
 @bot.command(name='reloadgroups')
