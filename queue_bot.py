@@ -441,9 +441,10 @@ async def check_staff_command(ctx, queue_id=None):
         td = parent.find("td", class_=days[day_of_week])
 
         if (not td) and (day_of_week == 1 or day_of_week == 3):
-            await ctx.send("Currently it is lecture time.")
-            await ctx.send("But there are still active staff members.")
-            await ctx.send(staff_str)
+            await ctx.send("Currently it is big lev's lecture time.")
+            if queue_info["activeStaff"] != []:
+                await ctx.send("But there are still active staff members.")
+                await ctx.send(staff_str)
             return
         
         if not td:
