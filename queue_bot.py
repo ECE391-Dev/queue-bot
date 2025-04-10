@@ -280,8 +280,9 @@ async def check_queue_command(ctx, queue_id=None):
             staff_name = staff["user"]["name"]
             staff_str += f"{staff_name}, "
         staff_str = staff_str[:-2]  # Remove the trailing comma and space
+        staff_str = f"Currently {staff_str} are on duty."
 
-    await ctx.send(f"Queue {queue_id} found. Currently f{staff_str} are on duty.")
+    await ctx.send(f"Queue {queue_id} found. {staff_str}")
 
     await ctx.send(f"Checking queue {queue_id} for group members...")
     
