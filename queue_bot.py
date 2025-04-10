@@ -274,7 +274,7 @@ async def check_queue_for_groups():
 
 def check_message_format(netids, topics):
     regex = "^\[(MP|Conceptual)\] ,Group \d+, Computer \d+ : .+$"
-    message = "**QUESTION WITH INCORRECT FORMAT:**\n\n"
+    message = "**QUESTION WITH INCORRECT FORMAT:**\n"
     for i in range(len(topics)):
         if not re.match(regex, topics[i]):
             message += f"Question {i} with netid {netids[i]} has wrong format: {topics[i]}"
@@ -366,8 +366,24 @@ async def check_staff_command(ctx, queue_id=None):
         staff_str = staff_str[:-2]  # Remove the trailing comma and space
         staff_str = f"Currently {staff_str} are on duty."
 
-    await ctx.send(staff_str)
+    
 
+
+    curtime = datetime.now().time()
+
+    start_time = time(8, 0)  # 8:00 AM
+    end_time = time(22, 0)  # 10:00 PM
+    if not (start_time <= curtime <= end_time):
+        await ctx.send("Current time is outside of working hours.")
+        if queue_info["activeStaff"] != []:
+            await ctx.send("But there are still active staff members.")
+            await ctx.send(staff_str)
+            return
+        else:
+            await ctx.send("And there are no active staff members.")
+            return
+    else:
+        pass
 
     
 
