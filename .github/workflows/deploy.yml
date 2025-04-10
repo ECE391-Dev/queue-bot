@@ -11,7 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Set SSH keys
         run: |
           mkdir -p ~/.ssh/
           echo "$SSH_PRIVATE_KEY"  > ../private.key
