@@ -6,9 +6,12 @@ import os
 import csv
 import asyncio
 from dotenv import load_dotenv
+import re
+import random
 
 # Load environment variables from .env file
 load_dotenv()
+
 
 # Constants
 DEFAULT_BASE_URL = "https://queue.illinois.edu"
@@ -252,8 +255,17 @@ async def check_queue_for_groups():
     # Update the previous groups in queue for the next check
     previous_groups_in_queue = groups_in_queue
 
+def check_message_format(netids, topics):
+    regex = "^\[(MP|Conceptual)\] ,Group \d+, Computer \d+ : .+$"
+    message = "**QUESTION WITH INCORRECT FORMAT:**\n\n"
+    for i in range(len(topics)):
+        if not re.match(regex, topics[i]):
+            message += f"Question {i} with netid {netids[i]} has wrong format: {topics[i]}"
+    
+    return message
 
-@bot.command(name="checkqueue")
+
+@bot.command(name='checkqueue')
 async def check_queue_command(ctx, queue_id=None):
     """
     Command to check for groups in the queue
@@ -266,6 +278,7 @@ async def check_queue_command(ctx, queue_id=None):
                 "No queue ID specified. Please provide a queue ID or set the DEFAULT_QUEUE_ID environment variable."
             )
             return
+    
 
     await ctx.send(f"Checking queue {queue_id} for group members...")
 
@@ -279,14 +292,17 @@ async def check_queue_command(ctx, queue_id=None):
             f"No questions found for queue {queue_id} or error fetching questions."
         )
         return
-
-    # Extract NetIDs from questions
+    
+    # Extract NetIDs and text from questions
     netids = []
+    topics = []
     for question in questions:
         netid = extract_netid(question)
         if netid:
             netids.append(netid)
-
+            if question["topic"]: # Put this under here to avoid length mismatch
+                topics.append(question["topic"])
+    
     await ctx.send(f"Found {len(netids)} questions with NetIDs in the queue.")
 
     # Check if multiple members of the same group are in the queue
@@ -296,10 +312,48 @@ async def check_queue_command(ctx, queue_id=None):
 
     # Format and send the message
     message = format_groups_message(groups_in_queue, group_to_members)
+
     await ctx.send(message)
 
+    # Check for questions with wrong format
 
-@bot.command(name="reloadgroups")
+    await ctx.send("Checking for questions with wrong format...")
+    message = check_message_format(netids, topics)
+    await ctx.send(message)
+
+@bot.command(name="checkstaff")
+async def check_staff_command(ctx, queue_id=None):
+    """
+    Command to check for staff in the queue
+    Usage: !checkstaff [queue_id]
+    """
+    if not queue_id:
+        queue_id = os.getenv("DEFAULT_QUEUE_ID", "")
+        if not queue_id:
+            await ctx.send("No queue ID specified. Please provide a queue ID or set the DEFAULT_QUEUE_ID environment variable.")
+            return
+    
+    queue_info = await get_queue_info(DEFAULT_BASE_URL, queue_id, QUEUE_TOKEN)
+    if not queue_info:
+        await ctx.send(f"Error fetching queue info for queue {queue_id}.")
+        return
+    
+    staff_str = ""
+    #Extract activeStaff from queue_info
+    if queue_info["activeStaff"] == []:
+        staff_str = f"No active staff found for queue {queue_id}."
+    else :
+        for staff in queue_info["activeStaff"]:
+            staff_name = staff["user"]["name"]
+            staff_str += f"{staff_name}, "
+        staff_str = staff_str[:-2]  # Remove the trailing comma and space
+        staff_str = f"Currently {staff_str} are on duty."
+
+    await ctx.send(f"Queue {queue_id} found. {staff_str}")
+    
+
+
+@bot.command(name='reloadgroups')
 async def reload_groups_command(ctx, csv_path=None):
     """
     Command to reload the groups CSV file
@@ -333,6 +387,22 @@ async def set_interval_command(ctx, seconds: int):
 
     CHECK_INTERVAL = seconds
     await ctx.send(f"Check interval set to {seconds} seconds.")
+
+@bot.command(name='levquote')
+async def lev_quote_command(ctx):
+    """
+    Command to send a quote from the big lev
+    Usage: !levquote
+    """
+    quotes = [
+        "You pay me with your tuition and I still drive a shitty car",
+        "Some of you are playing games in my class, not very well I might add",
+        "I don't know how anyone taught this before Severance",
+        "Is it normal to be confused? For you, yes",
+    ]
+    
+    await ctx.send("Here's a daily inspirational quote from the big lev:")
+    await ctx.send(random.choice(quotes))
 
 
 @bot.event

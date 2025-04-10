@@ -1,0 +1,33 @@
+name: Run Python Script in Background
+
+on:
+  push:
+    branches:
+      - main  # or your desired branch
+  workflow_dispatch:  # allows manual run
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Set SSH keys
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_PRIVATE_KEY"  > ../private.key
+          sudo chmod 600 ../private.key
+          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+        env:
+          SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
+          SSH_KNOWN_HOSTS: ${{secrets.SSH_KNOWN_HOSTS}}
+          SSH_KEY_PATH: ${{ github.workspace }}/../private.key
+      - name: Redeploy bot
+        run: |
+          cat deploy.sh | ssh -i $SSH_KEY_PATH "$SERVER_USER@$SERVER_IP" -p 6677
+        shell: bash
+        env:
+          SSH_KEY_PATH: ${{ github.workspace }}/../private.key
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
