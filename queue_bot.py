@@ -10,6 +10,7 @@ import re
 import random
 from datetime import datetime, time
 from bs4 import BeautifulSoup
+from zoneinfo import ZoneInfo
 
 # Load environment variables from .env file
 load_dotenv()
@@ -371,7 +372,7 @@ async def check_staff_command(ctx, queue_id=None):
         else:
             staff_str = f"{staff_str} is on duty."
 
-    curtime = datetime.now().time()
+    curtime = datetime.now(ZoneInfo("America/Chicago")).time()
 
     start_time = time(8, 0)  # 8:00 AM
     end_time = time(22, 0)  # 10:00 PM
@@ -407,7 +408,7 @@ async def check_staff_command(ctx, queue_id=None):
             return
         
         #Find the row within the table
-        hour = datetime.now().hour
+        hour = datetime.now(ZoneInfo("America/Chicago")).hour
         hour_str = ""
         if hour <= 11:
             hour_str = f"{str(hour)}am"
