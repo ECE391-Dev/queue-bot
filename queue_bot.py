@@ -8,6 +8,7 @@ import asyncio
 from dotenv import load_dotenv
 import re
 import random
+from datetime import datetime, time
 
 # Load environment variables from .env file
 load_dotenv()
@@ -57,6 +58,22 @@ async def get_questions_for_queue(base_url, queue_id, token=None):
         print(f"Exception in get_questions_for_queue: {str(e)}")
         return []
 
+async def get_queue_info(base_url, queue_id, token=None):
+    headers = {}
+    if token:
+        headers["Private-Token"] = token
+    
+    url = f"{base_url}{API_PATH}/queues/{queue_id}"
+    try:
+        response = await asyncio.to_thread(requests.get, url, headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Error fetching queue info for queue {queue_id}: {response.status_code}")
+            return []
+    except Exception as e:
+        print(f"Exception in get_queue_info: {str(e)}")
+        return []
 
 def extract_netid(question):
     """Extract NetID from a question JSON object"""
@@ -349,7 +366,9 @@ async def check_staff_command(ctx, queue_id=None):
         staff_str = staff_str[:-2]  # Remove the trailing comma and space
         staff_str = f"Currently {staff_str} are on duty."
 
-    await ctx.send(f"Queue {queue_id} found. {staff_str}")
+    await ctx.send(staff_str)
+
+
     
 
 
