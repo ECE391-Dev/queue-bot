@@ -381,6 +381,7 @@ async def lev_quote_command(ctx):
         "Is it normal to be confused? For you, yes",
     ]
     
+    await ctx.send("Here's a daily inspirational quote from the big lev:")
     await ctx.send(random.choice(quotes))
 
 
