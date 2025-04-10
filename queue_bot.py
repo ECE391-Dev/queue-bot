@@ -244,7 +244,7 @@ async def check_queue_for_groups():
     # Update the previous groups in queue for the next check
     previous_groups_in_queue = groups_in_queue
 
-async def check_message_format(netids, topics):
+def check_message_format(netids, topics):
     regex = "^\[(MP|Conceptual)\] ,Group \d+, Computer \d+ : .+$"
     message = "**QUESTION WITH INCORRECT FORMAT:**\n\n"
     for i in range(len(topics)):
