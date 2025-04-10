@@ -280,7 +280,7 @@ def check_message_format(netids, topics):
     message = "**QUESTION WITH INCORRECT FORMAT:**\n"
     for i in range(len(topics)):
         if not re.match(regex, topics[i]):
-            message += f"Question {i} with netid {netids[i]} has wrong format: {topics[i]}"
+            message += f"Question {i} with netid {netids[i]} has wrong format: {topics[i]}\n"
     
     return message
 
