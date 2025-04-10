@@ -277,10 +277,15 @@ async def check_queue_for_groups():
 
 def check_message_format(netids, topics):
     regex = "^\[(MP|Conceptual)\] ,Group \d+, Computer \d+ : .+$"
-    message = "**QUESTION WITH INCORRECT FORMAT:**\n"
+    message = "**Questions with incorrect format:**\n"
+    incorrect = False
     for i in range(len(topics)):
         if not re.match(regex, topics[i]):
             message += f"Question {i} with netid {netids[i]} has wrong format: {topics[i]}\n"
+            incorrect = True
+    
+    if not incorrect:
+        message = "All questions have correct format."
     
     return message
 
