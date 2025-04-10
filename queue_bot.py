@@ -266,23 +266,6 @@ async def check_queue_command(ctx, queue_id=None):
             await ctx.send("No queue ID specified. Please provide a queue ID or set the DEFAULT_QUEUE_ID environment variable.")
             return
     
-    queue_info = await get_queue_info(DEFAULT_BASE_URL, queue_id, QUEUE_TOKEN)
-    if not queue_info:
-        await ctx.send(f"Error fetching queue info for queue {queue_id}.")
-        return
-    
-    staff_str = ""
-    #Extract activeStaff from queue_info
-    if queue_info["activeStaff"] == []:
-        staff_str = f"No active staff found for queue {queue_id}."
-    else :
-        for staff in queue_info["activeStaff"]:
-            staff_name = staff["user"]["name"]
-            staff_str += f"{staff_name}, "
-        staff_str = staff_str[:-2]  # Remove the trailing comma and space
-        staff_str = f"Currently {staff_str} are on duty."
-
-    await ctx.send(f"Queue {queue_id} found. {staff_str}")
 
     await ctx.send(f"Checking queue {queue_id} for group members...")
     
@@ -318,6 +301,37 @@ async def check_queue_command(ctx, queue_id=None):
     await ctx.send("Checking for questions with wrong format...")
     message = check_message_format(netids, topics)
     await ctx.send(message)
+
+@bot.command(name="checkstaff")
+async def check_staff_command(ctx, queue_id=None):
+    """
+    Command to check for staff in the queue
+    Usage: !checkstaff [queue_id]
+    """
+    if not queue_id:
+        queue_id = os.getenv("DEFAULT_QUEUE_ID", "")
+        if not queue_id:
+            await ctx.send("No queue ID specified. Please provide a queue ID or set the DEFAULT_QUEUE_ID environment variable.")
+            return
+    
+    queue_info = await get_queue_info(DEFAULT_BASE_URL, queue_id, QUEUE_TOKEN)
+    if not queue_info:
+        await ctx.send(f"Error fetching queue info for queue {queue_id}.")
+        return
+    
+    staff_str = ""
+    #Extract activeStaff from queue_info
+    if queue_info["activeStaff"] == []:
+        staff_str = f"No active staff found for queue {queue_id}."
+    else :
+        for staff in queue_info["activeStaff"]:
+            staff_name = staff["user"]["name"]
+            staff_str += f"{staff_name}, "
+        staff_str = staff_str[:-2]  # Remove the trailing comma and space
+        staff_str = f"Currently {staff_str} are on duty."
+
+    await ctx.send(f"Queue {queue_id} found. {staff_str}")
+    
 
 
 @bot.command(name='reloadgroups')
