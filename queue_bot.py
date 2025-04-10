@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import re
 import random
 from datetime import datetime, time
+from bs4 import BeautifulSoup
 
 # Load environment variables from .env file
 load_dotenv()
@@ -16,6 +17,7 @@ load_dotenv()
 
 # Constants
 DEFAULT_BASE_URL = "https://queue.illinois.edu"
+OH_URL = "https://courses.grainger.illinois.edu/ece391/sp2025/lab.html"
 API_PATH = "/q/api"
 QUEUE_TOKEN = os.getenv("QUEUE_TOKEN", "")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "")
@@ -369,9 +371,6 @@ async def check_staff_command(ctx, queue_id=None):
         else:
             staff_str = f"{staff_str} is on duty."
 
-    
-
-
     curtime = datetime.now().time()
 
     start_time = time(8, 0)  # 8:00 AM
@@ -386,9 +385,73 @@ async def check_staff_command(ctx, queue_id=None):
             await ctx.send("And there are no active staff members.")
             return
     else:
-        pass
+        try:
+            response = await asyncio.to_thread(requests.get, OH_URL)
+            if response.status_code != 200:
+                print(f"Error fetching queue info for queue {queue_id}: {response.status_code}")
+                await ctx.send(f"Error fetching queue info for queue {queue_id}: {response.status_code}")
+                return
+        except Exception as e:
+            print(f"Exception in get_queue_info: {str(e)}")
+            await ctx.send(f"Exception in get_queue_info: {str(e)}")
+            return
+        
+        # Parse the HTML content
+        html = response.content.decode("utf-8")
+        soup = BeautifulSoup(html, "html.parser")
 
+        # Find the table with class week
+        table = soup.find("table", class_="week")
+        if not table:
+            await ctx.send("Error parsing the HTML content.")
+            return
+        
+        #Find the row within the table
+        hour = datetime.now().hour
+        hour_str = ""
+        if hour <= 11:
+            hour_str = f"{str(hour)}am"
+        elif hour == 12:
+            hour_str = "noon"
+        else:
+            hour_str = f"{str(hour-12)}pm"
+
+        #Now find the td class=rh with the hour_str
+        row = table.find("td", class_="rh", string=hour_str)
+        if not row:
+            await ctx.send("Error parsing the HTML content.")
+            return
     
+        parent = row.find_parent("tr")
+        if not parent:
+            print("Error parsing the HTML content.")
+            return
+
+        #get day of the week in number
+        day_of_week = datetime.now().weekday()
+        days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+        #Find the corresponding td element
+        td = parent.find("td", class_=days[day_of_week])
+
+        if (not td) and (day_of_week == 1 or day_of_week == 3):
+            await ctx.send("Currently it is lecture time.")
+            return
+        
+        if not td:
+            await ctx.send("Error parsing the HTML content.")
+            return
+
+        output_str = td.get_text().replace("\n", "")
+        if output_str.strip() == "":
+            await ctx.send("No staff is scheduled for duty.")
+            return
+        
+        if day_of_week == 2 and (hour >= 9 and hour <= 15):
+            await ctx.send(f"Currently it is {output_str}'s discussion section.")
+            return
+        
+        await ctx.send(f"Currently it is {output_str}'s office hour.")
 
 
 @bot.command(name='reloadgroups')
