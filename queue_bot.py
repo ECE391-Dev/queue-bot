@@ -454,8 +454,9 @@ async def check_staff_command(ctx, queue_id=None):
         output_str = td.get_text().replace("\n", "")
         if output_str.strip() == "":
             await ctx.send("No staff is scheduled for duty.")
-            await ctx.send("But there are still active staff members.")
-            await ctx.send(staff_str)
+            if queue_info["activeStaff"] != []:
+                await ctx.send("But there are still active staff members.")
+                await ctx.send(staff_str)
             return
         
         if day_of_week == 2 and (hour >= 9 and hour <= 15):
