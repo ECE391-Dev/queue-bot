@@ -469,6 +469,169 @@ async def check_staff_command(ctx, queue_id=None):
         await ctx.send(f"Currently it is {output_str}'s office hour.")
         await ctx.send(staff_str)
 
+@bot.command(name='checkall')
+async def check_all_command(ctx, queue_id=None):
+    """
+    Command to check both queue status and staff status
+    Usage: !checkall [queue_id]
+    """
+    if not queue_id:
+        queue_id = os.getenv("DEFAULT_QUEUE_ID", "")
+        if not queue_id:
+            await ctx.send(
+                "No queue ID specified. Please provide a queue ID or set the DEFAULT_QUEUE_ID environment variable."
+            )
+            return
+    
+    await ctx.send(f"**Checking queue {queue_id} - Full Status Report**\n")
+    
+    # Part 1: Queue check
+    await ctx.send("**QUEUE STATUS:**")
+    
+    # Get questions for the specified queue
+    questions = await get_questions_for_queue(
+        DEFAULT_BASE_URL, queue_id, QUEUE_TOKEN
+    )
+
+    if not questions:
+        await ctx.send(
+            f"No questions found for queue {queue_id} or error fetching questions."
+        )
+    else:
+        # Extract NetIDs and text from questions
+        netids = []
+        topics = []
+        for question in questions:
+            netid = extract_netid(question)
+            if netid:
+                netids.append(netid)
+                if question["topic"]:
+                    topics.append(question["topic"])
+        
+        await ctx.send(f"Found {len(netids)} questions with NetIDs in the queue.")
+
+        # Check if multiple members of the same group are in the queue
+        groups_in_queue = check_group_members_in_queue(
+            netids, netid_to_group, group_to_members
+        )
+
+        # Format and send the message about groups
+        message = format_groups_message(groups_in_queue, group_to_members)
+        await ctx.send(message)
+
+        # Check for questions with wrong format
+        message = check_message_format(netids, topics)
+        await ctx.send(message)
+    
+    # Part 2: Staff check
+    await ctx.send("\n**STAFF STATUS:**")
+    
+    queue_info = await get_queue_info(DEFAULT_BASE_URL, queue_id, QUEUE_TOKEN)
+    if not queue_info:
+        await ctx.send(f"Error fetching queue info for queue {queue_id}.")
+        return
+    
+    staff_str = ""
+    # Extract activeStaff from queue_info
+    if queue_info["activeStaff"] == []:
+        staff_str = f"No active staff found for queue {queue_id}."
+    else:
+        for staff in queue_info["activeStaff"]:
+            staff_name = staff["user"]["name"]
+            staff_str += f"{staff_name}, "
+        staff_str = staff_str[:-2]  # Remove the trailing comma and space
+        if len(queue_info["activeStaff"]) > 1:
+            staff_str = f"{staff_str} are on duty."
+        else:
+            staff_str = f"{staff_str} is on duty."
+
+    curtime = datetime.now(ZoneInfo("America/Chicago")).time()
+
+    start_time = time(8, 0)  # 8:00 AM
+    end_time = time(22, 0)  # 10:00 PM
+    if not (start_time <= curtime <= end_time):
+        await ctx.send("Current time is outside of working hours.")
+        if queue_info["activeStaff"] != []:
+            await ctx.send("But there are still active staff members.")
+            await ctx.send(staff_str)
+        else:
+            await ctx.send("And there are no active staff members.")
+    else:
+        try:
+            response = await asyncio.to_thread(requests.get, OH_URL)
+            if response.status_code != 200:
+                await ctx.send(f"Error fetching office hours info: {response.status_code}")
+                return
+        except Exception as e:
+            await ctx.send(f"Exception in get_queue_info: {str(e)}")
+            return
+        
+        # Parse the HTML content
+        html = response.content.decode("utf-8")
+        soup = BeautifulSoup(html, "html.parser")
+
+        # Find the table with class week
+        table = soup.find("table", class_="week")
+        if not table:
+            await ctx.send("Error parsing the HTML content.")
+            return
+        
+        # Find the row within the table
+        hour = datetime.now(ZoneInfo("America/Chicago")).hour
+        hour_str = ""
+        if hour <= 11:
+            hour_str = f"{str(hour)}am"
+        elif hour == 12:
+            hour_str = "noon"
+        else:
+            hour_str = f"{str(hour-12)}pm"
+
+        # Now find the td class=rh with the hour_str
+        row = table.find("td", class_="rh", string=hour_str)
+        if not row:
+            await ctx.send("Error parsing the HTML content.")
+            return
+    
+        parent = row.find_parent("tr")
+        if not parent:
+            await ctx.send("Error parsing the HTML content.")
+            return
+
+        # get day of the week in number
+        day_of_week = datetime.now().weekday()
+        days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+        # Find the corresponding td element
+        td = parent.find("td", class_=days[day_of_week])
+
+        if (not td) and (day_of_week == 1 or day_of_week == 3):
+            await ctx.send("Currently it is big lev's lecture time.")
+            if queue_info["activeStaff"] != []:
+                await ctx.send("But there are still active staff members.")
+                await ctx.send(staff_str)
+            return
+        
+        if not td:
+            await ctx.send("Error parsing the HTML content.")
+            return
+
+        output_str = td.get_text().replace("\n", "")
+        if output_str.strip() == "":
+            await ctx.send("No staff is scheduled for duty.")
+            if queue_info["activeStaff"] != []:
+                await ctx.send("But there are still active staff members.")
+                await ctx.send(staff_str)
+            return
+        
+        if day_of_week == 2 and (hour >= 9 and hour <= 15):
+            await ctx.send(f"Currently it is {output_str}'s discussion section.")
+            await ctx.send("But there are still active staff members.")
+            await ctx.send(staff_str)
+            return
+        
+        await ctx.send(f"Currently it is {output_str}'s office hour.")
+        await ctx.send(staff_str)
+
 
 @bot.command(name='reloadgroups')
 async def reload_groups_command(ctx, csv_path=None):
