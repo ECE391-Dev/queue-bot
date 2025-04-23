@@ -173,8 +173,8 @@ def format_groups_message(groups_in_queue, group_to_members):
         all_members = group_to_members.get(group_id, [])
         not_in_queue = [m for m in all_members if m not in members]
         # bug fix: remove group id from not_in_queue
-        if group_id in not_in_queue:
-            not_in_queue.remove(group_id)
+        if str(group_id) in not_in_queue:
+            not_in_queue.remove(str(group_id))
         if not_in_queue:
             message += f"• Members not in queue: {', '.join(not_in_queue)}\n"
 
